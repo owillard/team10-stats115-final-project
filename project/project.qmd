@@ -21,19 +21,44 @@ library(broom.mixed)
 ### Clean the dataset
 
 ```{r}
-dataset <- read.csv("../data/data.csv")
-
-summary(dataset$Gallstone.Status)
-summary(dataset$Comorbidity)
-```
-
-```{r}
 data <- dataset |>
   select(
     gallstone = Gallstone.Status,
-    comorbid = Comorbidity
-  ) |>
-  mutate(comorbid = as.integer(comorbid > 0))
+    gender = Gender,
+    age = Age,
+    bfr = Total.Body.Fat.Ratio..TBFR.....,
+    bmi = Body.Mass.Index..BMI.,
+    glucose = Glucose,
+    comorbid = Comorbidity,
+    height = Height,
+    weight = Weight,
+    tbw = Total.Body.Water..TBW.,
+    ecw = Extracellular.Water..ECW.,
+    icw = Intracellular.Water..ICW.,
+    ecftbw = Extracellular.Fluid.Total.Body.Water..ECF.TBW.,
+    tbfr = Total.Body.Fat.Ratio..TBFR.....,
+    lean_mass = Lean.Mass..LM.....,
+    bpc = Body.Protein.Content..Protein.....,
+    vfr = Visceral.Fat.Rating..VFR.,
+    bone_mass = Bone.Mass..BM.,
+    musc_mass = Muscle.Mass..MM.,
+    obesity = Obesity....,
+    tfc = Total.Fat.Content..TFC.,
+    vfa = Visceral.Fat.Area..VFA.,
+    vma = Visceral.Muscle.Area..VMA...Kg.,
+    hfa = Hepatic.Fat.Accumulation..HFA.,
+    tc = Total.Cholesterol..TC.,
+    ldl = Low.Density.Lipoprotein..LDL.,
+    hdl = High.Density.Lipoprotein..HDL.,
+    trigly = Triglyceride,
+    alt = Alanin.Aminotransferaz..ALT.,
+    alp = Alkaline.Phosphatase..ALP.,
+    creat = Creatinine,
+    gfr = Glomerular.Filtration.Rate..GFR.,
+    crp = C.Reactive.Protein..CRP.,
+    hgb = Hemoglobin..HGB.,
+    vita_d = Vitamin.D
+  )
 head(data)
 ```
 
@@ -41,10 +66,10 @@ head(data)
 
 ```{r}
 prior_model <- stan_glm(
-  gallstone ~ comorbid,
-  data = data,
+  gallstone ~ comorbid + gender,
+  data = dataset,
   family = binomial(link = "logit"),
-  prior_intercept = normal(qlogis(0.0605), (qlogis(0.065) - qlogis(0.056)) / 2, autoscale = T),
+  prior_intercept = normal(qlogis(0.0605), abs(qlogis(0.065) - qlogis(0.056)) / 4, autoscale = T),
   prior = normal(log(1.1), log(1.1) / 2, autoscale = T),
   chains = 4, iter = 5000*2, seed = 84735,
   prior_PD = T, refresh = F
@@ -57,6 +82,14 @@ rhat(prior_model)
 mcmc_trace(prior_model)
 mcmc_dens_overlay(prior_model)
 mcmc_acf(prior_model)
+```
+
+```{r}
+set.seed(84735)
+data |>
+  add_linpred_draws(prior_model, ndraws = 1000) |>
+  ggplot(aes(x = gender, y = gallstone)) +
+    geom_line(aes(y = .linpred, group = .draw), size = 0.10, alpha = 0.30)
 ```
 
 ```{r}
@@ -92,7 +125,16 @@ mcmc_acf(posterior_model)
 set.seed(84735)
 data |>
   add_linpred_draws(posterior_model, ndraws = 1000) |>
-  ggplot(aes(x = comorbid, y = gallstone)) +
+  ggplot(aes(x = gender, y = gallstone)) +
+    geom_line(aes(y = .linpred, group = .draw), size = 0.10, alpha = 0.30) +
+    labs(y = "prob of gallstone")
+```
+
+```{r}
+set.seed(84735)
+data |>
+  add_linpred_draws(posterior_model, ndraws = 1000) |>
+  ggplot(aes(x = bmi, y = gallstone)) +
     geom_line(aes(y = .linpred, group = .draw), size = 0.10, alpha = 0.30) +
     labs(y = "prob of gallstone")
 ```
@@ -105,24 +147,6 @@ posterior_interval(posterior_model, prob = 0.95)
 ```{r}
 # odds
 exp(posterior_interval(posterior_model, prob = 0.95))
-```
-
-```{r}
-set.seed(84735)
-bin_pred <- posterior_predict(posterior_model, newdata = data.frame(comorbid = 1))
-```
-
-```{r}
-#| warning: False
-mcmc_hist(bin_pred) + labs(x = "Y")
-```
-
-```{r}
-table(bin_pred)
-```
-
-```{r}
-colMeans(bin_pred)
 ```
 
 ```{r}
@@ -151,3 +175,8 @@ cv_accuracy
 # log(odds)
 tidy(posterior_model, effects = "fixed", conf.int = TRUE, conf.level = 0.95)
 ```
+
+```{r}
+pp_check(posterior_model, nreps = 100)
+```
+

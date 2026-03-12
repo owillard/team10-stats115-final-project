@@ -21,7 +21,7 @@ library(broom.mixed)
 ### Clean the dataset
 
 ```{r}
-dataset <- read.csv("./data.csv")
+dataset <- read.csv("../data/data.csv")
 
 summary(dataset$Gallstone.Status)
 summary(dataset$Comorbidity)
@@ -188,4 +188,3 @@ cv_accuracy
 # log(odds)
 tidy(posterior_model, effects = "fixed", conf.int = TRUE, conf.level = 0.95)
 ```
-

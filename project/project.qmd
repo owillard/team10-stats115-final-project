@@ -1,0 +1,191 @@
+---
+title: "project"
+format: html
+editor: visual
+---
+
+```{r}
+#| include: false
+library(bayesrules)
+library(tidyverse)
+library(rstan)
+library(rstanarm)
+library(bayesplot)
+library(tidybayes)
+library(janitor)
+library(broom.mixed)
+```
+
+## Week 8 Tasks
+
+### Clean the dataset
+
+```{r}
+dataset <- read.csv("./data.csv")
+
+summary(dataset$Gallstone.Status)
+summary(dataset$Comorbidity)
+```
+
+```{r}
+data <- dataset |>
+  select(
+    gallstone = Gallstone.Status,
+    comorbid = Comorbidity
+  ) |>
+  mutate(comorbid = as.integer(comorbid > 0))
+head(data)
+```
+
+### EDA
+
+```{r}
+data |>
+  mutate(gallstone = if_else(gallstone == 1, "yes", "no")) |>
+  tabyl(gallstone) |>
+  adorn_totals(name = "total") |>
+  select(gallstone, n)
+```
+
+```{r}
+data |>
+  mutate(comorbid = if_else(comorbid == 1, "yes", "no")) |>
+  tabyl(comorbid) |>
+  adorn_totals(name = "total") |>
+  select(comorbid, n)
+```
+
+```{r}
+data |>
+  mutate(comorbid = if_else(comorbid == 1, "yes", "no"),
+         gallstone = if_else(gallstone == 1, "stone", "no")) |>
+  tabyl(comorbid, gallstone) |>
+  adorn_totals(c("row","col"))
+```
+
+```{r}
+df <- data |>
+  mutate(comorbid = if_else(comorbid == 1, "yes", "no"),
+         gallstone = if_else(gallstone == 1, "yes", "no")) |>
+  rowwise()
+df
+```
+
+```{r}
+ggplot(df, aes(x = gallstone, fill = comorbid)) +
+  geom_bar(position = "fill")
+```
+
+```{r}
+prior_model <- stan_glm(
+  gallstone ~ comorbid,
+  data = data,
+  family = binomial(link = "logit"),
+  prior_intercept = normal(qlogis(0.0605), abs(qlogis(0.0605)) / 2, autoscale = T),
+  prior = normal(log(1.1), log(1.1) / 2, autoscale = T),
+  chains = 4, iter = 5000*2, seed = 84735,
+  prior_PD = T, refresh = F
+)
+```
+
+```{r}
+neff_ratio(prior_model)
+rhat(prior_model)
+mcmc_trace(prior_model)
+mcmc_dens_overlay(prior_model)
+mcmc_acf(prior_model)
+```
+
+```{r}
+set.seed(84735)
+data |>
+  add_linpred_draws(prior_model, ndraws = 1000) |>
+  ggplot(aes(x = comorbid, y = gallstone)) +
+    geom_line(aes(y = .linpred, group = .draw), size = 0.10, alpha = 0.30)
+```
+
+```{r}
+set.seed(84735)
+data |>
+  add_epred_draws(prior_model, ndraws = 1000) |>
+  group_by(.draw) |>
+  ggplot(aes(x = .epred)) +
+    geom_histogram(color = "white", binwidth = 0.05, boundary = 0)
+```
+
+```{r}
+posterior_model <- update(prior_model, prior_PD = F)
+```
+
+```{r}
+neff_ratio(posterior_model)
+rhat(posterior_model)
+mcmc_trace(posterior_model)
+mcmc_dens_overlay(posterior_model)
+mcmc_acf(posterior_model)
+```
+
+```{r}
+set.seed(84735)
+data |>
+  add_linpred_draws(posterior_model, ndraws = 1000) |>
+  ggplot(aes(x = comorbid, y = gallstone)) +
+    geom_line(aes(y = .linpred, group = .draw), size = 0.10, alpha = 0.30) +
+    labs(y = "prob of gallstone")
+```
+
+```{r}
+# log(odds)
+posterior_interval(posterior_model, prob = 0.95)
+```
+
+```{r}
+# odds
+exp(posterior_interval(posterior_model, prob = 0.95))
+```
+
+```{r}
+set.seed(84735)
+bin_pred <- posterior_predict(posterior_model, newdata = data.frame(comorbid = 1))
+```
+
+```{r}
+#| warning: False
+mcmc_hist(bin_pred) + labs(x = "Y")
+```
+
+```{r}
+table(bin_pred)
+```
+
+```{r}
+colMeans(bin_pred)
+```
+
+```{r}
+proportion_gallstone <- function(x){mean(x == 1)}
+pp_check(posterior_model, nreps = 1000,
+         plotfun = "stat", stat = "proportion_gallstone") + 
+  xlab("probability of gallstone")
+```
+
+```{r}
+set.seed(84735)
+classification_summary(model = posterior_model, data = data, cutoff = 0.5)
+```
+
+```{r}
+set.seed(84735)
+cv_accuracy <- classification_summary_cv(
+  model = posterior_model, data = data, cutoff = 0.5, k = 10)
+```
+
+```{r}
+cv_accuracy
+```
+
+```{r}
+# log(odds)
+tidy(posterior_model, effects = "fixed", conf.int = TRUE, conf.level = 0.95)
+```
+

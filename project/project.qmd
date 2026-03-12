@@ -40,43 +40,6 @@ head(data)
 ### EDA
 
 ```{r}
-data |>
-  mutate(gallstone = if_else(gallstone == 1, "yes", "no")) |>
-  tabyl(gallstone) |>
-  adorn_totals(name = "total") |>
-  select(gallstone, n)
-```
-
-```{r}
-data |>
-  mutate(comorbid = if_else(comorbid == 1, "yes", "no")) |>
-  tabyl(comorbid) |>
-  adorn_totals(name = "total") |>
-  select(comorbid, n)
-```
-
-```{r}
-data |>
-  mutate(comorbid = if_else(comorbid == 1, "yes", "no"),
-         gallstone = if_else(gallstone == 1, "stone", "no")) |>
-  tabyl(comorbid, gallstone) |>
-  adorn_totals(c("row","col"))
-```
-
-```{r}
-df <- data |>
-  mutate(comorbid = if_else(comorbid == 1, "yes", "no"),
-         gallstone = if_else(gallstone == 1, "yes", "no")) |>
-  rowwise()
-df
-```
-
-```{r}
-ggplot(df, aes(x = gallstone, fill = comorbid)) +
-  geom_bar(position = "fill")
-```
-
-```{r}
 prior_model <- stan_glm(
   gallstone ~ comorbid,
   data = data,

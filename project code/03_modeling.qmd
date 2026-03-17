@@ -28,6 +28,7 @@ In this file, we:
 -   summarize posterior results
 -   evaluate predictive performance using classification accuracy and cross-validation
 -   perform posterior predictive checks
+-   compare different models and select a final model
 
 ```{r}
 #| include: false
@@ -54,11 +55,11 @@ data <- read.csv("../data/cleaned_data.csv")
 
 ## Defining Bayesian Logistic Regression Model
 
-We decided to use the following predictors in the final model: vita_d, bone_mass, crp. These variables were selected because the exploratory analysis suggested that they had more meaningful relationships with gallstone status than comorbidity and many of the other variables
+We explored several different models using predictors that appeared more strongly related to gallstone status in the exploratory analysis than comorbidity alone. We decided to use the following predictors in the final model: vita_d, bone_mass, crp, icw, hgb. These variables were selected because the exploratory analysis suggested that they had more meaningful relationships with gallstone status than comorbidity and many of the other variables
 
-Our outcome variable is gallstone, where 1 means patient has gallstones and 0 means patient does not have gallstones. We model the probability of gallstones as a function of Vitamin D, bone mass, and CRP.
+Our outcome variable is gallstone, where 1 means patient has gallstones and 0 means patient does not have gallstones. We model the probability of gallstones as a function of Vitamin D, bone mass, CRP, ICW (intracellular water), and HGB (hemoglobin).
 
-$logit(p_i) = \beta_0 + \beta_1(\text{vita_d}_i) + \beta_2(\text{bone_mass}_i) + \beta_3(\text{crp}_i)$
+$logit(p_i) = \beta_0 + \beta_1(\text{vita_d}_i) + \beta_2(\text{bone_mass}_i) + \beta_3(\text{crp}_i) + \beta_4(\text{icw}_i) + \beta_5(\text{hgb}_i)$
 
 ## Prior Model
 
@@ -69,7 +70,7 @@ For the intercept prior, we use information based on the baseline prevalence of 
 ```{r}
 # fit prior predictive model
 prior_model <- stan_glm(
-  formula = gallstone ~ vita_d + bone_mass + crp,
+  formula = gallstone ~ vita_d + bone_mass + crp + icw + hgb,
   data = data,
   family = binomial(link = "logit"),
   prior_intercept = normal(location = qlogis(0.0605), scale = abs(qlogis(0.065) - qlogis(0.056)) / 4, autoscale = F),
@@ -134,7 +135,7 @@ neff_ratio(posterior_model)
 rhat(posterior_model)
 ```
 
-Similarly to the prior model, the effective sample size ratios are all greater than 1, suggesting the model did a good job at generating independent information about the parameters. This suggest the model has converged and the results are reliable. The R-hat values are all very close to 1, suggesting the model converged correctly.
+The effective sample size ratios range from 0.56 to 0.88, suggesting the model did a reasonable job at generating independent information about the parameters. This suggest the model has converged and the results are reliable. The R-hat values are all very close to 1, suggesting the model converged correctly.
 
 ```{r}
 # trace plots
@@ -168,7 +169,7 @@ posterior_interval(posterior_model, prob = 0.95)
 exp(posterior_interval(posterior_model, prob = 0.95))
 ```
 
-The 95% posterior intervals suggest that all three predictors are related to gallstone risk. Higher Vitamin D and bone mass are associated to an increase in the odds of gallstones, while higher CRP is associated with a decrease in the odds of gallstones. Since none of the intervals include 0, the model suggests these variables are related to gallstone status in the data.
+The 95% posterior intervals suggest that all three predictors are related to gallstone risk. Higher Vitamin D, bone mass, and HGB are associated to an increase in the odds of gallstones, while higher CRP and ICW are associated with a decrease in the odds of gallstones. Since none of the intervals include 0, the model suggests these variables are related to gallstone status in the data.
 
 ### Tidy Posterior Summary
 
@@ -178,7 +179,7 @@ tidy(posterior_model, effects = "fixed", conf.int = TRUE, conf.level = 0.95)
 
 ```
 
-The tidy summary shows that the model suggests that Vitamin D and bone mass increase the odds of gallstones, while CRP decreases the odds. All predictors appear to have meaningful relationships with gallstone status because their intervals do not include zero.
+The tidy summary shows that the model suggests that Vitamin D, bone mass, and HGB increase the odds of gallstones, while CRP and ICW decreases the odds. All predictors appear to have meaningful relationships with gallstone status because their intervals do not include zero.
 
 ## Evaluation Metrics
 
@@ -214,7 +215,7 @@ classification_summary(
 )
 ```
 
-The model correctly identifies about 76% of people who actually have gallstones and 83% of people who do not have gallstones with an overall 80% accuracy overall. Overall the model performs fairly well, with slightly better performance at identifying people without gallstones than those with gallstones.
+The model correctly identifies about 76.39% of people who actually have gallstones and 82.27% of people who do not have gallstones with an overall 79.31% accuracy overall. Overall the model performs fairly well, with slightly better performance at identifying people without gallstones than those with gallstones.
 
 ### Cross Validation Testing
 
@@ -232,13 +233,11 @@ cv_accuracy
 
 ```
 
-Based on our cross validation testing, we saw that overall the model performs reasonable well, correctly predicting gallstone status about 78% of the time. It is slightly better at identifying people without gallstones than those with gallstones.
+Based on our cross validation testing, we saw that overall the model performs reasonably well, correctly predicting gallstone status about 80.27% of the time. It is slightly better at identifying people without gallstones than those with gallstones.
 
-## Summary
+## Candidate Model Comparison
 
-Although our project originally focused on if comorbidity predicts gallstones, the exploratory data analysis suggested that comorbodoty had only a very weak relationship with gallstone status in this dataset. The correlation between comorbidity and gallstones was close to zero, and the proportion of gallstones appeared similar between patients with and without comorbidities. Because of this, we shifted the focus of the project toward identifying other variables that might better explain the probability of gallstones.
-
-Based on our exploratory analysis, we tested several Bayesian logistic regression models using different combinations of predictors. The models and their approximate classification accuracy were:
+To determine the best final model, we compared a total of 6 Bayesian Logistic Regression Models:
 
 -   Model 1 (7 predictors): vita_d + bone_mass + crp + icw + hgb + hfa + gender
 
@@ -320,6 +319,8 @@ model_6 <- stan_glm(
 )
 ```
 
+### Classification Accuracy Across Candidate Models
+
 ```{r}
 classification_summary(model_1, data = data, cutoff = 0.366)
 
@@ -334,9 +335,9 @@ classification_summary(model_5, data = data, cutoff = 0.475)
 classification_summary(model_6, data = data, cutoff = 0.475)
 ```
 
-```{r}
-set.seed(84735)
+### Cross Validated Classification Accuracy
 
+```{r}
 classification_summary_cv(model_1, data = data, cutoff = 0.366, k = 10)
 
 classification_summary_cv(model_2, data = data, cutoff = 0.377, k = 10)
@@ -350,8 +351,9 @@ classification_summary_cv(model_5, data = data, cutoff = 0.475, k = 10)
 classification_summary_cv(model_6, data = data, cutoff = 0.475, k = 10)
 ```
 
+### Leave One Out Cross Validation
+
 ```{r}
-set.seed(84735)
 loo_model_1 <- loo(model_1, k_threshold = 0.7)
 loo_model_2 <- loo(model_2, k_threshold = 0.7)
 loo_model_3 <- loo(model_3, k_threshold = 0.7)
@@ -369,6 +371,8 @@ loo_compare(
 )
 ```
 
+### Posterior Predictive Checks for Candidate Models
+
 ```{r}
 pp_check(model_1)
 pp_check(model_2)
@@ -378,8 +382,21 @@ pp_check(model_5)
 pp_check(model_6)
 ```
 
+### Final Model Selection
 
-Although the larger models achieved slightly higher accuracy, the improvements were relatively small. For this reason we went with the three predictor model as our final model because it provides a simpler and more interpretable model while maintaining strong predictive performance.
+Models 1, 2, and 3 performed very similarily under the leave one out cross validation. Models 4 and 5 showed a more noticeable drop in performance. This suggests that the first three models are more compatible, while the smaller models lose some predictive information.
+
+Among Models 1, 2, and 3, we went with Model 3 as the final model because it achieved nearly the same LOOCV performance as Models 1 and 2 while using fewer predictors. This makes Model 3 a better balance between predictive performance and simplicity.
+
+Originally we were deciding between Model 3 and Model 5 because they had very similar overall accuracy. But, Model 3 had higher sensitivity, meaning it was better at correctly identifying patients who truly have gallstones. Since identifying true gallstone cases is an important goal of our analysis, this gave additional support for selecting Model 3 with 5 predictors over Model 5 with 3 predictors.
+
+## Summary
+
+Although our project originally focused on if comorbidity predicts gallstones, the exploratory data analysis suggested that comorbodoty had only a very weak relationship with gallstone status in this dataset. The correlation between comorbidity and gallstones was close to zero, and the proportion of gallstones appeared similar between patients with and without comorbidities. Because of this, we shifted the focus of the project toward identifying other variables that might better explain the probability of gallstones.
+
+Based on our exploratory analysis, we tested several Bayesian logistic regression models, using different combinations of predictors. Model comparison showed that Models 1 - 3 performed similarly well under LOOCV while Models 4 and 5 performed somewhat worse. Because Model 3 had nearly the same predictive performance as Models 1 and 2 with fewer predictors we chose that as our final model.
+
+We also found that even though Model 5 had similar overall classification accuracy, Model 3 had stronger sensitivity. This means Model 3 was better at identifying patients who actually have gallstones, which made it more useful for our research goal.
 
 We wanted to note that prior research has suggested that comorbidity may be associated with gallstone disease. The weak relationship observed in this dataset may therefore reflect limitations of the available data, such as how comorbidity was recorded or the specific population represented in the dataset. With a larger dataset or more detailed measures of comorbidity, this variable might still play a meaningful role in predicting gallstone risk.
 

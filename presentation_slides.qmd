@@ -11,6 +11,8 @@ format: html
   - Better clinical decision making 
 - Goal: Our goal is to use Bayesian logistic regression model to estimate **probability of gallstones** 
 
+---
+
 ## Research Question
 
 **Initial Question:**
@@ -19,6 +21,82 @@ format: html
 **Refined Question:**
   - How do clinical and body composition variables influence the probability that a patient has gallstones?
 
+---
+
 ## Dataset
 
-- Source: UCI dataset (health/ body composition)
+- Data: Gallstone dataset (health/ body composition)
+- Source: UCI Irvine Machine Learning Repository
+- Observations: Patients with various clinical measurements 
+
+---
+
+**Key Variables**
+- Outcomes: Gallstone Status(gallstone / 1 = yes, 0 = no)
+- Predictors:
+  - Vitamin D (vita_b)
+  - Bone Mass (bone_mass)
+  - CRP (crp)
+  - Intracellular water (icw)
+  - Hemoglobin (hgb)
+  - Comorbidity (comorbid)
+
+---
+
+## Data Cleaning
+
+- We renamed the variables for clarity
+- We converted variables to binary:
+  - Gallstone (reserved coding)
+  - Comorbidity → 0/1
+- Ensure the consistency for modeling 
+
+**Why is this important?**
+- Logistic regression requires correct outcome coding
+- To prevent outcome interpretation
+
+---
+
+## Exploratory Data Analysis (EDA)
+
+**Key Findings:**
+- The gallstone outcome is relatively balanced and can be analyzed as a binary variable
+- Comorbidity shows a weak relationship with gallstones (may not be a strong stand alone predictor of gallstone status)
+- Higher correlation with gallstone status:
+  - Vitamin D
+  - CRP
+  - Bone mass
+  - Lean mass
+  - BFR
+
+**Conclusion:**
+- We decided to shift focus away from comorbidity and toward other predictors that appeared to have stronger relationships with gallstone status
+
+---
+
+## Model Choice 
+We use **Bayesian Logistic Regression**
+
+Why?
+- Outcome is binary
+- Estimates probability directly
+- Allows use of prior knowledge
+- Provides uncertainty via posterior distributions
+
+## Model Setup
+
+\[
+\text{logit}(p_i) = \beta_0 + \beta_1(\text{vita\_d}) + \beta_2(\text{bone\_mass}) + \beta_3(\text{crp}) + \beta_4(\text{icw}) + \beta_5(\text{hgb})
+\]
+
+## Model Comparision
+
+We have tested with 6 different models containing the different amount of predictors:
+
+
+
+
+
+
+
+

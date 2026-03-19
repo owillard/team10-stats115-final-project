@@ -140,21 +140,6 @@ And:
 
 ---
 
-## Posterior Results
-**Key Findings:**
-- Increase gallstone risk:
-  - Vitamin D
-  - Bone mass
-  - Hemoglobin
-
-- Decrease gallstone risk:
-  - CRP
-  - ICW
-
-- Credible intervals do NOT include 0 → meaningful relationships
-
----
-
 ## Model Performance
 - Accuracy ≈ **79–80%**
 - Sensitivity:
@@ -167,10 +152,20 @@ And:
 
 ---
 
-## Posterior Model
+## Posterior Model & Result
+**Key Findings:**
+- Increase gallstone risk:
+  - Vitamin D
+  - Bone mass
+  - Hemoglobin
 
-The model suggests:
+- Decrease gallstone risk:
+  - CRP
+  - ICW
 
+- Credible intervals do NOT include 0 → meaningful relationships
+
+**The model suggests:**
 - Higher **Vitamin D**, **bone mass**, and **HGB** are associated with higher odds of gallstones
 - Higher **CRP** and **ICW** are associated with lower odds of gallstones
 
@@ -179,7 +174,7 @@ Because the posterior intervals did not include 0, these predictors appeared mea
 ---
 
 ## Model Comparision
-We have tested with 6 different models containing the different amount of predictors:
+We tested 6 different models with varying numbers of predictors:
 
 - Model 1 (7 predictors): vita_d + bone_mass + crp + icw + hgb + hfa + gender 
   - Accuracy about 81.82%

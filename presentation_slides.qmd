@@ -13,20 +13,22 @@ format: html
 ## Research Question
 
 **Initial Question:**
-  - Are gallstone more prevelant than among patients with comorbidities compared to those without comorbidities? Does comorbidity predict gallstone?
+- Are gallstones more prevalent among patients with comorbidities compared to those without comorbidities?  
+- Does comorbidity predict gallstones?
 
 **Refined Question:**
-  - How do clinical and body composition variables influence the probability that a patient has gallstones?
+- How do clinical and body composition variables influence the probability that a patient has gallstones?
 
 ---
 ## Why would we care?
 
-- Gallstones are a common digestive conditions affecting millions, which can lead to serious complications is untreated
+- Gallstones are a common digestive condition affecting millions and can lead to serious complications if untreated  
 - Understanding risk factors helps:
   - Early detection
-  - Better clinical decision making 
-- We were interested in whether comorbidity predicts gallstones
-- Goal: Our goal is to use Bayesian modeling (logistic regression model) to estimate **probability of gallstones** 
+  - Better clinical decision-making  
+- We were initially interested in whether comorbidity predicts gallstones  
+
+**Goal:** Use Bayesian logistic regression to estimate the **probability of gallstones**
 
 ---
 
@@ -40,9 +42,9 @@ format: html
 - Observations: Patients with various clinical measurements 
 
 **Key Variables**
-- Outcomes: Gallstone Status(gallstone / 1 = yes, 0 = no)
+- Outcome: Gallstone Status (1 = yes, 0 = no)
 - Predictors:
-  - Vitamin D (vita_b)
+  - Vitamin D (vita_d)
   - Bone Mass (bone_mass)
   - CRP (crp)
   - Intracellular water (icw)
@@ -55,15 +57,15 @@ format: html
 
 - We renamed the variables for clarity
 - We converted variables to binary:
-  - Gallstone (reserved coding)
+  - Gallstone (reserve coding)
   - Comorbidity → 0/1
     - 0 = no comorbidity
     - 1 = at least one comorbidity
-- Ensure the consistency for modeling 
+- Ensure consistency for modeling  
 
 **Why is this important?**
 - Logistic regression requires correct outcome coding
-- To prevent outcome interpretation
+- Prevents incorrect interpretation of the outcome
 
 ---
 
@@ -73,7 +75,7 @@ format: html
 - The gallstone outcome is relatively balanced and can be analyzed as a binary variable
 - Comorbidity shows a weak relationship with gallstones 
   - Comorbidity did not strongly separate patients with and without gallstones
-  - Comorbidity may not be a strong stand alone predictor of gallstone status
+  - Comorbidity may not be a strong standalone predictor of gallstone status
 - Higher correlation with gallstone status:
   - Vitamin D
   - CRP
@@ -92,8 +94,8 @@ We use **Bayesian Logistic Regression**
 Why?
 - Outcome is binary
 - Estimates probability directly
-- Allows use of prior knowledge
-- Provides uncertainty via posterior distributions
+- Allows incorporation of prior knowledge
+- Quantifies uncertainty using posterior distributions and credible intervals
 And:
 - Bayesian methods let us:
   - include prior information
@@ -113,7 +115,7 @@ And:
 
 ## Prior Model
 - Intercept:
-  - Intercept prior based on baseline gallstone prevalence obtained from research (~6%)
+  - Intercept prior based on baseline gallstone prevalence (~6%)
 - Coefficients:
   - Weakly informative Normal priors centered at 0 for regression coefficients (0, 2.5)
 - Insert prior code
